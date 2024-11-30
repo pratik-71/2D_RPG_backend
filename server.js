@@ -19,7 +19,7 @@ const io = socketIo(server, {
 
 app.use(express.json());
 
-// Handle socket events
+// Handle socket eventss
 handleSocketEvents(io);
 
 // Start the server
