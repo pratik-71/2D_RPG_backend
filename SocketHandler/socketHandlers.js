@@ -3,6 +3,8 @@ const { generateRoomCode } = require("../GameLogic/RoomLogic");
 
 let rooms = {};
 
+
+
 function handleSocketEvents(io) {
   io.on("connection", (socket) => {
     console.log(`Player connected: ${socket.id}`);
@@ -17,6 +19,7 @@ function handleSocketEvents(io) {
           x: 500, // Default position
           y: 500, // Default position
           direction: "down", // Default direction
+          health:100
         });
         socket.join(roomCode);
         console.log(`Player ${name} joined room: ${roomCode}`);
@@ -45,9 +48,29 @@ function handleSocketEvents(io) {
             x: null,
             y: null,
             direction: "down",
+            health:100
           },
         ],
         hostId: socket.id,
+        trees: {
+          // Define the trees and their initial health
+          tree1: { health: 20 },
+          tree2: { health: 20 },
+          tree3: { health: 20 },
+          tree4: { health: 20 },
+          tree5: { health: 20 },
+          tree6: { health: 20 },
+          tree7: { health: 20 },
+          tree8: {health:20},
+          tree9: { health: 20 },
+          tree10: { health: 20 },
+          tree11: { health: 20 },
+          tree12: { health: 20 },
+          tree13: { health: 20 },
+          tree14: { health: 20 },
+          tree15: { health: 20 },
+          tree16: { health: 20 },
+        },
       };
       socket.join(roomCode);
       console.log(
@@ -167,6 +190,34 @@ function handleSocketEvents(io) {
         console.log("Player room not found");
       }
     });
+
+
+    socket.on("damageTree", (data) => {
+      console.log("-----------",data)
+      const { treeId, damage, roomCode } = data;
+      const room = rooms[roomCode];
+
+      if (room && room.trees[treeId]) {
+        const tree = room.trees[treeId];
+        tree.health -= damage; // Apply damage to the tree's health
+
+        console.log(`Tree ${treeId} health: ${tree.health}`);
+
+        if (tree.health <= 0) {
+          tree.health = 0;
+          console.log(`Tree ${treeId} destroyed`);
+
+          // Give players health bonus when a tree is destroyed
+          room.players.forEach((player) => {
+            player.health = Math.min(player.health + 20, 100); // Cap health at 100
+          });
+          
+          io.to(roomCode).emit("updatePlayers", room.players);
+        }
+        io.to(roomCode).emit("updateTreeHealth", { treeId, health: tree.health });
+      }
+    });
+    
   });
 }
 
