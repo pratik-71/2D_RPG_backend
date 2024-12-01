@@ -1,13 +1,11 @@
 const { Socket } = require("socket.io");
 const { generateRoomCode } = require("../GameLogic/RoomLogic");
 
-let rooms = {};        
-   
+let rooms = {};
 
 function handleSocketEvents(io) {
   io.on("connection", (socket) => {
     console.log(`Player connected: ${socket.id}`);
-
 
     socket.on("joinRoom", (data) => {
       const { roomCode, name } = data;
@@ -16,9 +14,9 @@ function handleSocketEvents(io) {
         rooms[roomCode].players.push({
           id: socket.id,
           name,
-          x: 500,  // Default position
-          y: 500,  // Default position
-          direction: 'down', // Default direction
+          x: 500, // Default position
+          y: 500, // Default position
+          direction: "down", // Default direction
         });
         socket.join(roomCode);
         console.log(`Player ${name} joined room: ${roomCode}`);
@@ -40,11 +38,21 @@ function handleSocketEvents(io) {
     socket.on("createRoom", (data) => {
       const roomCode = generateRoomCode();
       rooms[roomCode] = {
-        players: [{ id: socket.id, name: data.name, x: null, y: null, direction: 'down' }],
+        players: [
+          {
+            id: socket.id,
+            name: data.name,
+            x: null,
+            y: null,
+            direction: "down",
+          },
+        ],
         hostId: socket.id,
       };
       socket.join(roomCode);
-      console.log(`Room created with code: ${roomCode} by player: ${data.name}`);
+      console.log(
+        `Room created with code: ${roomCode} by player: ${data.name}`
+      );
 
       socket.emit("roomCode", roomCode);
       io.to(roomCode).emit(
@@ -55,7 +63,7 @@ function handleSocketEvents(io) {
         rooms[roomCode].hostId
       );
     });
-   
+
     // Handle destroy room event
     socket.on("destroyRoom", (data) => {
       console.log("inside destroy room");
@@ -69,26 +77,26 @@ function handleSocketEvents(io) {
       }
     });
 
-     // Handle player position updates
-     socket.on('updatePlayerPosition', (data) => {
+    // Handle player position updates
+    socket.on("updatePlayerPosition", (data) => {
       const playerRoom = rooms[data.roomCode];
-      
+
       if (playerRoom) {
-        const player = playerRoom.players.find(player => player.id === socket.id);
-        
+        const player = playerRoom.players.find(
+          (player) => player.id === socket.id
+        );
+
         if (player) {
           player.x = data.x;
           player.y = data.y;
           player.direction = data.direction;
-          player.isMoving = data.isMoving;  
-          io.to(data.roomCode).emit('updatePlayers', playerRoom.players);
+          player.isMoving = data.isMoving;
+          io.to(data.roomCode).emit("updatePlayers", playerRoom.players);
         }
       } else {
-        console.log('Player room not found');
+        console.log("Player room not found");
       }
     });
-    
-    
 
     // Handle disconnecting a specific player from a room
     socket.on("disconnectPlayer", (roomCode, playerName, socketid) => {
@@ -97,7 +105,9 @@ function handleSocketEvents(io) {
 
       if (rooms[roomCode]) {
         const room = rooms[roomCode];
-        const playerIndex = room.players.findIndex((player) => player.id === socketid);
+        const playerIndex = room.players.findIndex(
+          (player) => player.id === socketid
+        );
 
         if (playerIndex > -1) {
           io.to(roomCode).emit("playerDisconnected", playerName);
@@ -113,11 +123,13 @@ function handleSocketEvents(io) {
               "updateRoomState",
               roomCode,
               room.players.length,
-              room.players.map(player => player.name),
+              room.players.map((player) => player.name),
               room.hostId
             );
           }
-          console.log(`Player ${playerName} disconnected from room ${roomCode}`);
+          console.log(
+            `Player ${playerName} disconnected from room ${roomCode}`
+          );
         }
       }
     });
@@ -127,7 +139,32 @@ function handleSocketEvents(io) {
       console.log("Received start game request for room:", roomCode);
       const room = rooms[roomCode];
       if (room) {
-        io.to(roomCode).emit("gameStarted", roomCode, room.players.length, room.players);
+        io.to(roomCode).emit(
+          "gameStarted",
+          roomCode,
+          room.players.length,
+          room.players
+        );
+      }
+    });
+
+    // Handle player attack
+    socket.on("playerAttack", (data) => {
+      const playerRoom = rooms[data.roomCode]; // Fetch the room using roomCode
+
+      if (playerRoom) {
+        socket.broadcast.emit("playerAttacked", {
+          socketId: data.socketId,
+          x: data.x,
+          y: data.y,
+          direction: data.direction,
+          attackAnimationKey: data.attackAnimationKey,
+        });
+        console.log(
+          `Player ${data.socketId} attacked in the ${data.direction} direction`
+        );
+      } else {
+        console.log("Player room not found");
       }
     });
   });
