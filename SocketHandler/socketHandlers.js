@@ -71,22 +71,23 @@ function handleSocketEvents(io) {
 
      // Handle player position updates
      socket.on('updatePlayerPosition', (data) => {
-      const playerRoom = rooms[data.roomCode]; 
-      console.log(socket.id)
-     console.log(playerRoom)
+      const playerRoom = rooms[data.roomCode];
+      
       if (playerRoom) {
         const player = playerRoom.players.find(player => player.id === socket.id);
+        
         if (player) {
-          console.log("pos - 2 -2")
           player.x = data.x;
           player.y = data.y;
           player.direction = data.direction;
+          player.isMoving = data.isMoving;  
+          io.to(data.roomCode).emit('updatePlayers', playerRoom.players);
         }
-        io.emit('updatePlayers',playerRoom.players );
       } else {
         console.log('Player room not found');
       }
     });
+    
     
 
     // Handle disconnecting a specific player from a room
