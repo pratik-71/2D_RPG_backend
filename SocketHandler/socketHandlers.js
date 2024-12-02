@@ -252,10 +252,6 @@ function  handleSocketEvents(io) {
 
 
     socket.on("updateTreesOnStart",(data)=>{
-      const {roomCode} = data
-
-      console.log("--- --- --- ")
-      console.log(data)
       const treesArray = Object.keys(rooms[data].trees).map((key) => ({
         id: key,
         health: rooms[data].trees[key].health
