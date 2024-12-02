@@ -48,7 +48,8 @@ function handleSocketEvents(io) {
             x: null,
             y: null,
             direction: "down",
-            health:100
+            health:100,
+            isDead:false
           },
         ],
         hostId: socket.id,
@@ -217,6 +218,25 @@ function handleSocketEvents(io) {
         io.to(roomCode).emit("updateTreeHealth", { treeId, health: tree.health });
       }
     });
+
+    socket.on("updatePlayerIsDead", (data) => {
+      const { socketId, isDead, roomCode } = data;
+      const room = rooms[roomCode];
+      
+      if (room) {
+        const player = room.players.find(player => player.id === socketId);
+        if (player) {
+          player.isDead = isDead;
+          console.log(`Player ${player.name} with ID ${socketId} is now dead in room ${roomCode}`);
+          io.to(roomCode).emit("PlayerIsDead", { id: socketId, isDead });
+        } else {
+          console.log(`Player with ID ${socketId} not found in room ${roomCode}`);
+        }
+      } else {
+        console.log(`Room ${roomCode} not found`);
+      }
+    });
+    
     
   });
 }
