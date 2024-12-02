@@ -5,33 +5,44 @@ let rooms = {};
 
 
 
-function handleSocketEvents(io) {
+function  handleSocketEvents(io) {
   io.on("connection", (socket) => {
     console.log(`Player connected: ${socket.id}`);
+
+
 
     socket.on("joinRoom", (data) => {
       const { roomCode, name } = data;
       if (rooms[roomCode]) {
-        // Add player to the room
         rooms[roomCode].players.push({
           id: socket.id,
           name,
-          x: 500, // Default position
-          y: 500, // Default position
-          direction: "down", // Default direction
+          x: 500, 
+          y: 500, 
+          direction: "down",
           health:100
         });
         socket.join(roomCode);
-        console.log(`Player ${name} joined room: ${roomCode}`);
+
+       if(rooms[roomCode].isGameStarted){
+         io.to(roomCode).emit('GameHasStarted',{id:socket.id,name,x:500,y:500,direction:'down',health:100})
+         io.to(socket.id).emit(
+          "gameStarted",
+          roomCode,
+          rooms[roomCode].players.length,
+          rooms[roomCode].players
+        );
+       }else{
         io.to(roomCode).emit(
           "updateRoomState",
           roomCode,
           rooms[roomCode].players.length,
           rooms[roomCode].players.map((player) => player.name),
           rooms[roomCode].hostId
-        );
-        socket.emit("roomJoined", roomCode);
-      } else {
+        );     
+       }
+      }        
+      else {
         socket.emit("roomNotFound", "Room not found");
         console.log(`Room ${roomCode} not found`);
       }
@@ -49,7 +60,7 @@ function handleSocketEvents(io) {
             y: null,
             direction: "down",
             health:100,
-            isDead:false
+            isDead:false,
           },
         ],
         hostId: socket.id,
@@ -72,6 +83,7 @@ function handleSocketEvents(io) {
           tree15: { health: 20 },
           tree16: { health: 20 },
         },
+        isGameStarted:false
       };
       socket.join(roomCode);
       console.log(
@@ -162,6 +174,7 @@ function handleSocketEvents(io) {
     socket.on("startGame", (roomCode) => {
       console.log("Received start game request for room:", roomCode);
       const room = rooms[roomCode];
+      room.isGameStarted = true;
       if (room) {
         io.to(roomCode).emit(
           "gameStarted",
@@ -236,6 +249,19 @@ function handleSocketEvents(io) {
         console.log(`Room ${roomCode} not found`);
       }
     });
+
+
+    socket.on("updateTreesOnStart",(data)=>{
+      const {roomCode} = data
+
+      console.log("--- --- --- ")
+      console.log(data)
+      const treesArray = Object.keys(rooms[data].trees).map((key) => ({
+        id: key,
+        health: rooms[data].trees[key].health
+      }))
+     io.to(data).emit("updateTreeSprites", treesArray);
+    })
     
     
   });
