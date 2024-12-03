@@ -82,8 +82,11 @@ function  handleSocketEvents(io) {
           tree14: { health: 20 },
           tree15: { health: 20 },
           tree16: { health: 20 },
+          tree17:{health:20},
+          tree18:{health:20}
         },
-        isGameStarted:false
+        isGameStarted:false,
+        messages:[]
       };
       socket.join(roomCode);
       console.log(
@@ -258,6 +261,32 @@ function  handleSocketEvents(io) {
       }))
      io.to(data).emit("updateTreeSprites", treesArray);
     })
+
+    socket.on('sendMessage', (data) => {
+      console.log("------------------");
+      console.log(data);
+      const { message, playerName, roomCode, socketId } = data;
+      if (!rooms[roomCode]) {
+        rooms[roomCode] = {
+          players: [], // Player details
+          messages: [], // Messages for the room
+        };
+      }
+      rooms[roomCode].messages.push({
+        playerName,
+        message,
+        socketId,
+        timestamp: new Date().toISOString(),
+      });
+      io.to(roomCode).emit('receiveMessage', {
+        playerName,
+        message,
+        socketId,  
+        timestamp: new Date().toISOString(),
+      });
+    
+      console.log("Message sent to room:", roomCode);
+    });
     
     
   });
