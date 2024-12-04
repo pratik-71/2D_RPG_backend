@@ -3,13 +3,44 @@ const { generateRoomCode } = require("../GameLogic/RoomLogic");
 
 let rooms = {};
 
+function getRandomSpawnPosition() {
+  const border = Math.floor(Math.random() * 4);  // Randomly select a border (0-3)
+
+  switch (border) {
+    case 0: // Left border
+      return {
+        x: getRandomInt(60, 80),
+        y: getRandomInt(60, 720)  // Between top and bottom borders
+      };
+    case 1: // Top border
+      return {
+        x: getRandomInt(80, 880),  // Between left and right borders
+        y: getRandomInt(40, 60)
+      };
+    case 2: // Right border
+      return {
+        x: getRandomInt(880, 900),
+        y: getRandomInt(60, 720)
+      };
+    case 3: // Bottom border
+      return {
+        x: getRandomInt(80, 880),
+        y: getRandomInt(700, 720)
+      };
+    default:
+      return { x: 100, y: 100 };  // Fallback value
+  }
+}
+
+// Helper function to get a random integer between min and max
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 
 function  handleSocketEvents(io) {
   io.on("connection", (socket) => {
     console.log(`Player connected: ${socket.id}`);
-
-
 
     socket.on("joinRoom", (data) => {
       const { roomCode, name } = data;
@@ -86,7 +117,8 @@ function  handleSocketEvents(io) {
           tree18:{health:20}
         },
         isGameStarted:false,
-        messages:[]
+        messages:[],
+        zombies:[]
       };
       socket.join(roomCode);
       console.log(
@@ -177,16 +209,38 @@ function  handleSocketEvents(io) {
     socket.on("startGame", (roomCode) => {
       console.log("Received start game request for room:", roomCode);
       const room = rooms[roomCode];
-      room.isGameStarted = true;
+    
       if (room) {
-        io.to(roomCode).emit(
-          "gameStarted",
-          roomCode,
-          room.players.length,
-          room.players
-        );
+        room.isGameStarted = true;
+        room.zombies = [];  
+        room.totalEnemiesSpawned = 0;  
+    
+        io.to(roomCode).emit("gameStarted", roomCode, room.players.length, room.players);
+    
+        const spawnInterval = setInterval(() => {
+          if (room.totalEnemiesSpawned >= 40) {
+            clearInterval(spawnInterval);
+            return;
+          }
+    
+          for (let i = 0; i < 2 && room.totalEnemiesSpawned < 40; i++) {
+            const spawnPosition = getRandomSpawnPosition();  // Get random spawn coordinates
+            const enemy = {
+              id: `zombie_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+              x: spawnPosition.x,
+              y: spawnPosition.y,
+              health: 100,
+            };
+    
+            room.zombies.push(enemy);  
+            io.to(roomCode).emit("spawnEnemy", enemy);
+    
+            room.totalEnemiesSpawned++;
+          }
+        }, 3000);  // Every 3 seconds
       }
     });
+    
 
     // Handle player attack
     socket.on("playerAttack", (data) => {
