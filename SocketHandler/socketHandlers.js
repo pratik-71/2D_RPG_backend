@@ -2,6 +2,9 @@ const { Socket } = require("socket.io");
 const { generateRoomCode } = require("../GameLogic/RoomLogic");
 
 let rooms = {};
+const spawnInterval = 3000; // 3 seconds
+const maxEnemies = 40;
+const enemiesPerSpawn = 3
 
 function getRandomSpawnPosition() {
   const border = Math.floor(Math.random() * 4);  // Randomly select a border (0-3)
@@ -209,38 +212,16 @@ function  handleSocketEvents(io) {
     socket.on("startGame", (roomCode) => {
       console.log("Received start game request for room:", roomCode);
       const room = rooms[roomCode];
-    
+      room.isGameStarted = true;
       if (room) {
-        room.isGameStarted = true;
-        room.zombies = [];  
-        room.totalEnemiesSpawned = 0;  
-    
-        io.to(roomCode).emit("gameStarted", roomCode, room.players.length, room.players);
-    
-        const spawnInterval = setInterval(() => {
-          if (room.totalEnemiesSpawned >= 40) {
-            clearInterval(spawnInterval);
-            return;
-          }
-    
-          for (let i = 0; i < 2 && room.totalEnemiesSpawned < 40; i++) {
-            const spawnPosition = getRandomSpawnPosition();  // Get random spawn coordinates
-            const enemy = {
-              id: `zombie_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-              x: spawnPosition.x,
-              y: spawnPosition.y,
-              health: 100,
-            };
-    
-            room.zombies.push(enemy);  
-            io.to(roomCode).emit("spawnEnemy", enemy);
-    
-            room.totalEnemiesSpawned++;
-          }
-        }, 3000);  // Every 3 seconds
+        io.to(roomCode).emit(
+          "gameStarted",
+          roomCode,
+          room.players.length,
+          room.players
+        );
       }
     });
-    
 
     // Handle player attack
     socket.on("playerAttack", (data) => {
@@ -342,8 +323,88 @@ function  handleSocketEvents(io) {
       console.log("Message sent to room:", roomCode);
     });
     
+    socket.on('deployEnemy', (data) => {
+      console.log("pos-1")
+      const { roomCode } = data;
+      console.log(`Deploying enemies for room: ${roomCode}`);
+      
+      const room = rooms[roomCode];
+      if (room) {
+       
+        spawnEnemies(roomCode);
+      }
+    });
     
   });
+
+  function spawnEnemies(roomCode) {
+    const room = rooms[roomCode];
+  
+    if (!room) return;
+  
+    room.zombies = [];  
+    room.totalEnemiesSpawned = 0;  
+  
+    // Emit game start event to clients
+    console.log("pos-2")
+
+    const spawnInterval = setInterval(() => {
+      if (room.totalEnemiesSpawned >= 40) {
+        clearInterval(spawnInterval);
+        return;
+      }
+      console.log("pos-3")
+      for (let i = 0; i < 2 && room.totalEnemiesSpawned < 40; i++) {
+        const spawnPosition = getRandomSpawnPosition();  // Get random spawn coordinates
+        const enemy = {
+          id: `zombie_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          x: spawnPosition.x,
+          y: spawnPosition.y,
+          health: 100,
+        };
+  
+        room.zombies.push(enemy);  
+        io.to(roomCode).emit("spawnEnemy", enemy);  // Notify clients to spawn enemy
+  
+        room.totalEnemiesSpawned++;
+      }
+    }, 3000);  // Every 3 seconds
+  }
+  
+  // Helper function to generate random spawn position (can be customized)
+  function getRandomSpawnPosition() {
+    const border = Math.floor(Math.random() * 4);  // Randomly select a border (0-3)
+  
+    switch (border) {
+      case 0: // Left border
+        return {
+          x: getRandomInt(60, 80),
+          y: getRandomInt(60, 720)  // Between top and bottom borders
+        };
+      case 1: // Top border
+        return {
+          x: getRandomInt(80, 880),  // Between left and right borders
+          y: getRandomInt(40, 60)
+        };
+      case 2: // Right border
+        return {
+          x: getRandomInt(880, 900),
+          y: getRandomInt(60, 720)
+        };
+      case 3: // Bottom border
+        return {
+          x: getRandomInt(80, 880),
+          y: getRandomInt(700, 720)
+        };
+      default:
+        return { x: 100, y: 100 };  // Fallback value
+    }
+  }
+
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
 }
 
 module.exports = { handleSocketEvents };
