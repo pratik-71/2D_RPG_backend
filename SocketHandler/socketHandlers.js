@@ -334,8 +334,24 @@ function  handleSocketEvents(io) {
         spawnEnemies(roomCode);
       }
     });
+
+    socket.on('deleteRoom', (data) => {
+      const { roomCode } = data;
+     
+      if (rooms[roomCode]) {
+        io.in(roomCode).socketsLeave(roomCode);
+        delete rooms[roomCode];
+        console.log(`Room ${roomCode} deleted`);
+      } else {
+        socket.emit('error', { message: 'Room not found or already deleted.' });
+      }
+    });
+  
     
   });
+
+
+
 
   function spawnEnemies(roomCode) {
     const room = rooms[roomCode];
@@ -354,7 +370,7 @@ function  handleSocketEvents(io) {
         return;
       }
       console.log("pos-3")
-      for (let i = 0; i < 2 && room.totalEnemiesSpawned < 40; i++) {
+      for (let i = 0; i < 1 && room.totalEnemiesSpawned < 40; i++) {
         const spawnPosition = getRandomSpawnPosition();  // Get random spawn coordinates
         const enemy = {
           id: `zombie_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
