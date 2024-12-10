@@ -10,7 +10,7 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: {
-    origin: "*", // Allow all origins during development (be more specific in production)
+    origin: "http://localhost:5173", // Allow all origins during development (be more specific in production)
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"], // Allow necessary headers
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)

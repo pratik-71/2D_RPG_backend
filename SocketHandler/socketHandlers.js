@@ -2,10 +2,6 @@ const { Socket } = require("socket.io");
 const { generateRoomCode } = require("../GameLogic/RoomLogic");
 
 let rooms = {};
-const spawnInterval = 3000; // 3 seconds
-const maxEnemies = 40;
-const enemiesPerSpawn = 3;
-
 
 function handleSocketEvents(io) {
   io.on("connection", (socket) => {
@@ -53,8 +49,7 @@ function handleSocketEvents(io) {
         io.to(socket.id).emit("roomNotFound");
       }
     });
-    
-
+  
     // Handle create room event
     socket.on("createRoom", (data) => {
       const roomCode = generateRoomCode();
