@@ -2,24 +2,29 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors')
+const cors = require('cors');
 const { handleSocketEvents } = require('./SocketHandler/socketHandlers');
 
 const app = express();
 const server = http.createServer(app);
 
 const io = socketIo(server, {
-    cors: {
-      origin: "*", // Allow all origins during development (be more specific in production)
-      methods: ["GET", "POST"],
-      allowedHeaders: ["Content-Type"], // Allow necessary headers
-      credentials: true, // Allow credentials (cookies, authorization headers, etc.)
-    }
-  });
+  cors: {
+    origin: "*", // Allow all origins during development (be more specific in production)
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"], // Allow necessary headers
+    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  }
+});
 
 app.use(express.json());
- 
-// Handle socket eventss
+
+// Default route
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
+
+// Handle socket events
 handleSocketEvents(io);
 
 // Start the server
