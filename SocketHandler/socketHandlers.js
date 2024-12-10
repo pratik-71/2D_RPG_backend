@@ -194,6 +194,8 @@ function handleSocketEvents(io) {
           room.players
         );
       }
+      io.to(roomCode).emit("showbelowhealthbar")
+      
     });
 
     // Handle player attack
